@@ -1,5 +1,5 @@
 // lib/utils/index.ts
-import clsx, { ClassValue } from "clsx";
+import clsx, { type ClassValue } from "clsx";
 import pLimit from "p-limit";
 import { twMerge } from "tailwind-merge";
 
@@ -7,9 +7,28 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function openExternalLink(url: string) {
-  window.open(url, "_blank", "noopener,noreferrer");
+/**
+ * 格式化字节大小为人类可读格式
+ * @param bytes 字节数
+ * @returns 格式化后的字符串（如：1.5 MB, 2.3 GB）
+ */
+export function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
 }
+
+import { format } from "date-fns";
+import { zhCN } from "date-fns/locale";
+export const formatDateZN = (dateStr: string) => {
+  try {
+    return format(new Date(dateStr), "yyyy年MM月dd日", { locale: zhCN });
+  } catch {
+    return dateStr;
+  }
+};
 
 /**
  * 异步重试工具
@@ -46,6 +65,7 @@ export async function processBatchIO<T>(
   worker: (item: T, index: number) => Promise<void>,
   onProgress?: (done: number, total: number) => void,
   concurrency = 6
+  
 ): Promise<void> {
   const total = items.length;
   if (!total) return;
@@ -61,8 +81,39 @@ export async function processBatchIO<T>(
   );
 }
 
-/** 帧让位 */
-const nextFrame = () => new Promise(resolve => requestAnimationFrame(resolve));
+/**
+ * 让出主线程（不受后台标签页 rAF 节流影响）
+ * 优先使用 scheduler.yield（Chrome 129+），降级到 MessageChannel 宏任务
+ */
+const yieldToMain = (): Promise<void> => {
+  if (typeof (globalThis as any).scheduler?.yield === 'function') {
+    return (globalThis as any).scheduler.yield();
+  }
+  return new Promise<void>(resolve => {
+    const ch = new MessageChannel();
+    ch.port1.onmessage = () => resolve();
+    ch.port2.postMessage(null);
+  });
+};
+
+/**
+ * 节流函数
+ * @param fn 要节流的函数
+ * @param delay 节流间隔(ms)
+ */
+export function throttle<T extends (...args: unknown[]) => unknown>(
+  fn: T,
+  delay: number
+): (...args: Parameters<T>) => void {
+  let lastCall = 0;
+  return function (this: unknown, ...args: Parameters<T>) {
+    const now = Date.now();
+    if (now - lastCall >= delay) {
+      lastCall = now;
+      fn.apply(this, args);
+    }
+  };
+}
 
 /**
  * CPU 密集型分帧处理器
@@ -87,15 +138,10 @@ export async function processBatchCPU<T>(
     }
     done += chunk.length;
     onProgress?.(done, total);
-    await nextFrame();
+    await yieldToMain();
   }
 }
 
-
-// 格式化音视频时间为分秒格式
-export const formatMediaTime = (time: number) => {
-  if (isNaN(time)) return "0:00";
-  const minutes = Math.floor(time / 60);
-  const seconds = Math.floor(time % 60);
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-};
+export function openExternalLink(url: string) {
+  window.open(url, "_blank", "noopener,noreferrer");
+}
