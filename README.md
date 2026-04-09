@@ -1,122 +1,116 @@
 # KV Sync
 
-> A lightweight JSON snapshot sync service built on Cloudflare KV.
+基于 Cloudflare KV 的轻量 JSON 全量快照同步服务。
 
-它只做一件事：保存和读取完整 JSON 快照。服务端负责鉴权、存储和返回 metadata，不做局部合并、不做历史版本、不承诺强一致。
+只做三件事：鉴权、JSON 读写、返回基础元数据。
 
-## 适用场景
+不做字段合并、版本历史与强一致性保证。
+
+## 适合什么场景
 
 适合：
 
 - 配置同步
-- 草稿、偏好、轻量文档存储
-- 低频覆盖式状态同步
-- 内部工具的小规模数据持久化
+- 草稿 / 偏好 / 轻量状态持久化
+- 低频覆盖式同步
+- 内部工具的小规模数据存储
 
 不适合：
 
-- 高频并发编辑
+- 高频并发写入
+- 多人实时协作
 - 强一致事务
 - 复杂查询
-- 多人实时协作
 - 服务端自动冲突合并
 
 ## 同步模型
 
-推荐同步流程固定为：
+推荐固定使用：
 
 `读全量 -> 本地 merge -> 写全量`
 
-含义如下：
+也就是：
 
-1. 客户端先读取远端完整 JSON。
-2. 在本地按业务规则完成 merge。
-3. 将 merge 后的完整 JSON 整体写回。
+1. 先读远端完整 JSON。
+2. 在客户端按业务规则完成 merge。
+3. 把 merge 后的完整 JSON 整体写回。
 
-KVSync 本身是快照存储，不提供局部 patch merge。服务端每次写入都会生成新的 metadata：
+服务端每次写入只生成 metadata：
 
-- `updatedAt`
 - `size`
+- `updatedAt`
 
-如果需要冲突处理，应在客户端基于完整快照和本地状态完成，而不是依赖服务端做字段级合并。SDK 对应提供两个主方法：
+## 项目结构
 
-- `mergeAndSync`：前端只提供 merge 逻辑和成功回调
-- `put`：直接覆盖上传完整快照
+这是一个 monorepo：
 
-## SDK
+- `functions/`：Cloudflare Pages Functions 后端，基于 Hono
+- `frontend/`：Next.js 管理端页面
+- `client/`：浏览器优先的 SDK，包名 `@djchan/kv-sync` 
+- `shared/`：前后端共享类型
 
-仓库内提供 browser-first 的数据面 SDK：`@djchan/kv-sync`。
+> [SDK 文档](client/README.md)
 
-推荐用法：
+## 快速开始
 
-```ts
-import { createKvSyncClient } from "@djchan/kv-sync";
+要求：
 
-const kvSyncClient = createKvSyncClient({
-  baseUrl: "https://your-api.example.com",
-  appId: "my-app",
-  apiKey: "ksk_xxx",
-});
+- Node.js 18+
 
-const current = await kvSyncClient.get<{ theme: string }>("settings");
+安装依赖：
 
-await kvSyncClient.mergeAndSync("settings", {
-  merge(remote) {
-    return {
-      ...(remote ?? {}),
-      theme: "dark",
-    };
-  },
-  onSuccess(result) {
-    console.log(result.meta.updatedAt);
-  },
-});
+```bash
+npm install
 ```
 
-如果在当前 Next.js 前端中使用，可通过 `frontend/lib/api/kv-sync.ts` 创建带默认 `baseUrl` 的装配层。
+启动本地环境：
+
+```bash
+npm run build
+npm run dev
+```
+
+默认地址：
+
+- 前端：`http://localhost:3000`
+- 后端：`http://localhost:8080`
+
+本地默认管理员密码：
+
+```env
+PASSWORD=123456
+```
+
+仅启动后端：
+
+```bash
+npm run dev:backend
+```
+
+运行测试：
+
+```bash
+npm run ci-test
+```
 
 ## API 概览
 
-### 健康检查
+健康检查：
 
 ```http
 GET /healthz
 ```
 
-### 数据面
-
-数据面使用 `Authorization: Bearer <apiKey>` 鉴权。
+数据面，使用 `Authorization: Bearer <apiKey>`：
 
 ```http
 PUT    /apps/:appId/:apiKey
 GET    /apps/:appId/:apiKey
 DELETE /apps/:appId/:apiKey
+GET    /apps/:appId/records?limit=50&cursor=...
 ```
 
-写入 body 必须是合法 JSON。`PUT` 为覆盖式 upsert，返回：
-
-```json
-{
-  "size": 123,
-  "updatedAt": "2026-04-08T00:00:00.000Z"
-}
-```
-
-读取返回：
-
-```json
-{
-  "value": { "hello": "world" },
-  "meta": {
-    "size": 123,
-    "updatedAt": "2026-04-08T00:00:00.000Z"
-  }
-}
-```
-
-### 管理面
-
-管理面先通过登录接口获取 `auth` cookie，再访问 `/admin/api-keys`。
+管理面：
 
 ```http
 POST   /auth/login
@@ -128,113 +122,10 @@ DELETE /admin/api-keys/:keyRef
 PATCH  /admin/api-keys/:keyRef/status
 ```
 
-登录请求体：
+可选代理能力：
 
-```json
-{
-  "password": "123456"
-}
-```
-
-创建 API key 请求体：
-
-```json
-{
-  "note": "desktop client",
-  "prefix": "desktop"
-}
-```
-
-其中：
-
-- `note` 可选，最大 200 字符
-- `prefix` 可选，仅允许字母、数字、下划线，长度 1 到 20
-
-`POST /admin/api-keys` 会返回完整 `api_key`，且仅创建时可见一次。
-
-## KV 数据模型
-
-记录存储 key：
-
-```text
-app:{appId}:{apiKey}
-```
-
-value：
-
-- 业务 JSON 的完整字符串
-
-metadata：
-
-```json
-{
-  "size": 123,
-  "updatedAt": "2026-04-08T00:00:00.000Z"
-}
-```
-
-API key 存储 key：
-
-```text
-api_key:{apiKey}
-```
-
-metadata：
-
-```json
-{
-  "api_key": "ksk_xxx",
-  "note": "desktop client",
-  "createdAt": "2026-04-08T00:00:00.000Z",
-  "status": "on"
-}
-```
-
-## 本地开发
-
-前置要求：
-
-- Node.js 18+
-
-安装依赖：
-
-```bash
-npm install
-```
-
-构建前端静态文件：
-
-```bash
-npm run build
-```
-
-启动本地环境：
-
-```bash
-npm run dev
-```
-
-或仅启动后端：
-
-```bash
-npm run dev:backend
-```
-
-默认本地地址：
-
-- 前端：`http://localhost:3000`
-- 后端：`http://localhost:8080`
-
-默认开发密码通过本地 Wrangler 绑定为：
-
-```env
-PASSWORD=123456
-```
-
-运行集成测试：
-
-```bash
-npm run ci-test
+```http
+GET /proxy?url=...
 ```
 
 ## 部署
@@ -244,21 +135,21 @@ Cloudflare Pages 构建配置：
 - Build command: `npm run build`
 - Build output directory: `frontend/out`
 
-需要配置的环境变量：
+需要配置：
 
 ```env
 PASSWORD=your_password
 ```
 
-后端依赖一个 KV namespace 绑定：
+需要绑定的 KV namespace：
 
 ```text
 KV_SYNC
 ```
 
-## 设计说明
+## 设计原则
 
-- 服务端存储的是完整快照，不是字段级文档数据库
-- 覆盖写入采用简单 LWW 风格
-- API key 可创建多个，适合不同客户端或不同应用隔离
-- 客户端应把 merge 策略视为自身职责
+- 服务端存的是完整 JSON 快照，不是文档数据库
+- 写入策略是覆盖式 upsert
+- 冲突处理由客户端负责
+- API key 可按应用或客户端隔离
