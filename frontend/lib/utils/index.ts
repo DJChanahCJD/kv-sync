@@ -22,6 +22,11 @@ export function formatBytes(bytes: number): string {
 
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
+
+type SchedulerWithYield = {
+  yield?: () => Promise<void>;
+};
+
 export const formatDateZN = (dateStr: string) => {
   try {
     return format(new Date(dateStr), "yyyy年MM月dd日", { locale: zhCN });
@@ -94,8 +99,9 @@ export async function processBatchIO<T>(
  * 优先使用 scheduler.yield（Chrome 129+），降级到 MessageChannel 宏任务
  */
 const yieldToMain = (): Promise<void> => {
-  if (typeof (globalThis as any).scheduler?.yield === 'function') {
-    return (globalThis as any).scheduler.yield();
+  const scheduler = (globalThis as typeof globalThis & { scheduler?: SchedulerWithYield }).scheduler;
+  if (typeof scheduler?.yield === "function") {
+    return scheduler.yield();
   }
   return new Promise<void>(resolve => {
     const ch = new MessageChannel();

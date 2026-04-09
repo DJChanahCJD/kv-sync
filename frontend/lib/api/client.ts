@@ -1,15 +1,17 @@
-import { hc } from 'hono/client'
 import { API_URL } from './config'
-import { AppType } from '@functions/app'
 
-const customFetch: typeof fetch = async (input, init) => {
+export const apiFetch = async (path: string, init?: RequestInit) => {
   // 确保请求携带 Cookie
   const requestInit: RequestInit = {
     ...init,
     credentials: init?.credentials || "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(init?.headers as Record<string, string>),
+    },
   };
 
-  const res = await fetch(input, requestInit)
+  const res = await fetch(`${API_URL}${path}`, requestInit)
 
   if (res.status === 401) {
     if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
@@ -22,5 +24,3 @@ const customFetch: typeof fetch = async (input, init) => {
 
   return res
 }
-
-export const client = hc<AppType>(API_URL, { fetch: customFetch }) as any

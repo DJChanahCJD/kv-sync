@@ -55,7 +55,7 @@ export async function listApiKeys(
 }
 
 /**
- * 删除（吊销）API key
+ * 删除 API key
  */
 export async function deleteApiKey(keyRef: string): Promise<void> {
   return unwrap<void>(
@@ -70,7 +70,7 @@ export async function deleteApiKey(keyRef: string): Promise<void> {
  */
 export async function updateApiKeyStatus(
   keyRef: string,
-  status: "active" | "revoked"
+  status: "on" | "off"
 ): Promise<{ meta: ApiKeyMeta }> {
   return unwrap<{ meta: ApiKeyMeta }>(
     adminFetch(`/admin/api-keys/${encodeURIComponent(keyRef)}/status`, {

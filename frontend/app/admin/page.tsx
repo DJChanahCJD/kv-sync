@@ -19,6 +19,10 @@ import { createApiKey, deleteApiKey, listApiKeys, updateApiKeyStatus, type ListA
 import type { ApiKeyEntry } from "@shared/types";
 import { formatTime } from "@/lib/utils";
 
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
 export default function DashboardPage() {
   const [listResult, setListResult] = useState<ListApiKeysResult | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,8 +42,8 @@ export default function DashboardPage() {
       try {
         const result = await listApiKeys({ limit: 100 });
         setListResult(result);
-      } catch (e: any) {
-        toast.error(e.message || "加载失败");
+      } catch (error: unknown) {
+        toast.error(getErrorMessage(error, "加载失败"));
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -62,25 +66,26 @@ export default function DashboardPage() {
       setPrefix("");
       toast.success("API key 已创建");
       loadKeys(true);
-    } catch (e: any) {
-      toast.error(e.message || "创建失败");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "创建失败"));
     } finally {
       setCreating(false);
     }
   }
 
-  async function handleToggleStatus(keyRef: string, current: "active" | "revoked") {
-    const next = current === "active" ? "revoked" : "active";
+  async function handleToggleStatus(keyRef: string, current: "on" | "off") {
+    const next = current === "on" ? "off" : "on";
     setStatusPending((prev) => ({ ...prev, [keyRef]: true }));
     try {
       await updateApiKeyStatus(keyRef, next);
-      toast.success(next === "active" ? "已启用" : "已停用");
-    } catch (e: any) {
-      toast.error(e.message || "操作失败");
+      toast.success(next === "on" ? "已启用" : "已停用");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "操作失败"));
     } finally {
       setStatusPending((prev) => {
-        const { [keyRef]: _ignored, ...rest } = prev;
-        return rest;
+        const nextState = { ...prev };
+        delete nextState[keyRef];
+        return nextState;
       });
       loadKeys(true);
     }
@@ -92,10 +97,10 @@ export default function DashboardPage() {
     }
     try {
       await deleteApiKey(keyRef);
-      toast.success("已吊销");
+      toast.success("已删除");
       loadKeys(true);
-    } catch (e: any) {
-      toast.error(e.message || "删除失败");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "删除失败"));
     }
   }
 
@@ -315,7 +320,7 @@ function KeyRow({
   onToggleStatus: () => void;
 }) {
   const { keyRef, meta } = item;
-  const isActive = meta.status === "active";
+  const isActive = meta.status === "on";
   const displayKey = keyRef.length > 12 ? `${keyRef.slice(0, 12)}…` : keyRef;
 
   return (

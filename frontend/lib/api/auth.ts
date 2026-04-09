@@ -1,4 +1,4 @@
-import { client } from "./client";
+import { apiFetch } from "./client";
 import { unwrap } from "./config";
 
 /**
@@ -7,8 +7,9 @@ import { unwrap } from "./config";
 export async function login(password: string): Promise<boolean> {
   try {
     await unwrap(
-      client.auth.login.$post({
-        json: { password },
+      apiFetch("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ password }),
       })
     );
     return true;
@@ -22,7 +23,7 @@ export async function login(password: string): Promise<boolean> {
  */
 export async function logout(): Promise<boolean> {
   try {
-    await unwrap(client.auth.logout.$post());
+    await unwrap(apiFetch("/auth/logout", { method: "POST" }));
     return true;
   } catch {
     return false;

@@ -2,6 +2,7 @@
 const CACHE_NAME = 'kv-sync-cache-v1';
 const DEFAULT_TTL = 7 * 24 * 60 * 60 * 1000;
 const STORAGE_PRESSURE_RATIO = 0.8;
+type AsyncValue<T> = T | Promise<T> | (() => Promise<T>);
 
 const now = () => Date.now();
 const req = (key: string) =>
@@ -103,17 +104,17 @@ type MutateOptions = {
   revalidate?: boolean; // 默认 true
 };
 
-const inflight = new Map<string, Promise<any>>();
+const inflight = new Map<string, Promise<unknown>>();
 
 export async function mutate<T>(
   key: string,
-  dataOrFn?: T | Promise<T> | (() => Promise<T>),
+  dataOrFn?: AsyncValue<T>,
   options: MutateOptions = {}
 ): Promise<T | undefined> {
   const { revalidate = true } = options;
 
   if (inflight.has(key)) {
-    return inflight.get(key);
+    return inflight.get(key) as Promise<T | undefined>;
   }
 
   const run = async (): Promise<T | undefined> => {
