@@ -21,7 +21,7 @@ export type ApiKeyMeta = {
   api_key: string;
   note: string;
   createdAt: string;
-  status: "active" | "revoked";
+  status: "on" | "off";
 };
 
 /** list records 单条结果 */

@@ -17,6 +17,7 @@
   ],
   "scripts": {
     "build": "node ../node_modules/typescript/bin/tsc -p tsconfig.build.json",
+    "typecheck": "node ../node_modules/typescript/bin/tsc --noEmit -p tsconfig.json",
     "prepublishOnly": "npm run build",
     "pack:check": "npm run build && npm pack --dry-run --cache ../tmp/npm-cache",
     "pack:smoke": "npm run build && npm pack --pack-destination ../tmp --cache ../tmp/npm-cache && node ./scripts/smoke-pack.mjs"

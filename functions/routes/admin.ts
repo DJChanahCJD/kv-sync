@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import type { Env } from "../types/hono";
-import type { ApiKeyMeta, ApiKeyEntry } from "@kv-sync/shared";
+import type { ApiKeyMeta, ApiKeyEntry } from "@shared/types";
 import { KV } from "../types/index";
 import { ok, fail } from "@utils/response";
 import { authMiddleware } from "middleware/auth";
@@ -19,7 +19,7 @@ const createKeySchema = z.object({
 });
 
 const updateStatusSchema = z.object({
-  status: z.enum(["active", "revoked"]),
+  status: z.enum(["on", "off"]),
 });
 
 const listQuerySchema = z.object({
@@ -40,7 +40,7 @@ admin.post("/api-keys", zValidator("json", createKeySchema), async (c) => {
     api_key: apiKey,
     note: note || "",
     createdAt: new Date().toISOString(),
-    status: "active",
+    status: "on",
   };
 
   await c.env.KV_SYNC.put(KV.API_KEY(apiKey), "", { metadata: meta });

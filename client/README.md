@@ -4,8 +4,10 @@
 
 它只解决两件事：
 
-- `mergeAndSync`：传入合并逻辑和成功回调，SDK 自动完成 `get -> merge -> upload`
-- `upload`：直接用本地快照覆盖远端
+- `mergeAndSync`：传入合并逻辑和成功回调，SDK 自动完成 `get -> merge -> put`
+- `put`：直接用本地快照覆盖远端
+
+`createKvSyncClient()` 初始化后已经绑定 `appId + apiKey`，一个 client 实例只操作当前这条记录，不需要再重复传 `recordKey`。
 
 ## Install
 
@@ -30,7 +32,7 @@ const client = createKvSyncClient({
 适合“先拉远端，再按本地业务规则合并，再整体写回”的场景。
 
 ```ts
-await client.mergeAndSync("profile", {
+await client.mergeAndSync({
   merge(remote) {
     return {
       ...(remote ?? {}),
@@ -44,12 +46,12 @@ await client.mergeAndSync("profile", {
 });
 ```
 
-### `upload`
+### `put`
 
 适合“当前本地快照就是最终结果，直接覆盖远端”的场景。
 
 ```ts
-await client.upload("profile", {
+await client.put({
   theme: "dark",
   shortcuts: ["cmd+k"],
 });
@@ -57,10 +59,10 @@ await client.upload("profile", {
 
 ## API
 
-- `client.mergeAndSync(recordKey, { merge, onSuccess? })` 返回 `{ value, meta }`
-- `client.upload(recordKey, value)` 返回 `RecordMeta`
-- `client.get<T>(recordKey)` 返回 `{ value, meta }`，不存在时返回 `null`
-- `client.delete(recordKey)` 删除一条记录
+- `client.mergeAndSync({ merge, onSuccess? })` 返回 `{ value, meta }`
+- `client.put(value)` 返回 `RecordMeta`
+- `client.get<T>()` 返回 `{ value, meta }`，不存在时返回 `null`
+- `client.delete()` 删除当前记录
 
 ## Boundary
 

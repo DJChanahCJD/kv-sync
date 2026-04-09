@@ -2,6 +2,10 @@
   "name": "@kv-sync/functions",
   "version": "0.1.0",
   "private": true,
+  "scripts": {
+    "lint": "node ../node_modules/eslint/bin/eslint.js .",
+    "typecheck": "node ../node_modules/typescript/bin/tsc --noEmit -p tsconfig.json"
+  },
   "dependencies": {
     "@hono/zod-validator": "^0.7.6",
     "@types/node-forge": "^1.3.14",

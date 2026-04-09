@@ -31,7 +31,7 @@ export async function getFromCache(
 ): Promise<Response | null> {
   const cache = await caches.open(cacheName);
   const key = createCacheKey(request);
-  return cache.match(key);
+  return (await cache.match(key)) ?? null;
 }
 
 export async function putToCache(

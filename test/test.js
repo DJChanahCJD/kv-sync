@@ -126,7 +126,7 @@ describe("Admin API Keys", function () {
     assert.strictEqual(status, 201);
     assert.ok(body.success);
     assert.ok(body.data.api_key.startsWith("ksk_"), "Key should start with ksk_");
-    assert.strictEqual(body.data.meta.status, "active");
+    assert.strictEqual(body.data.meta.status, "on");
     assert.strictEqual(body.data.meta.note, "integration test key");
     createdKey = body.data.api_key;
   });
@@ -167,7 +167,6 @@ describe("Records CRUD", function () {
   this.timeout(30000);
 
   const APP_ID = "test-app";
-  const RECORD_KEY = "test-record";
   /** 用于数据面操作的 API key */
   let apiKey = null;
 
@@ -187,7 +186,7 @@ describe("Records CRUD", function () {
   });
 
   it("PUT should reject missing API key", async function () {
-    const { status } = await req("PUT", `/apps/${APP_ID}/${RECORD_KEY}`, {
+    const { status } = await req("PUT", `/apps/${APP_ID}/${apiKey}`, {
       body: { hello: "world" },
     });
     assert.strictEqual(status, 401);
@@ -195,7 +194,7 @@ describe("Records CRUD", function () {
 
   it("PUT should reject invalid JSON body", async function () {
     const res = await fetch(
-      `${API_URL}/apps/${APP_ID}/${RECORD_KEY}`,
+      `${API_URL}/apps/${APP_ID}/${apiKey}`,
       {
         method: "PUT",
         headers: {
@@ -211,7 +210,7 @@ describe("Records CRUD", function () {
   it("PUT should write a record and return metadata", async function () {
     const { status, body } = await req(
       "PUT",
-      `/apps/${APP_ID}/${RECORD_KEY}`,
+      `/apps/${APP_ID}/${apiKey}`,
       { token: apiKey, body: { hello: "world", count: 1 } }
     );
     assert.strictEqual(status, 200);
@@ -223,7 +222,7 @@ describe("Records CRUD", function () {
   it("GET should read the record back", async function () {
     const { status, body } = await req(
       "GET",
-      `/apps/${APP_ID}/${RECORD_KEY}`,
+      `/apps/${APP_ID}/${apiKey}`,
       { token: apiKey }
     );
     assert.strictEqual(status, 200);
@@ -236,19 +235,19 @@ describe("Records CRUD", function () {
   it("PUT should overwrite record (LWW)", async function () {
     const { body: first } = await req(
       "GET",
-      `/apps/${APP_ID}/${RECORD_KEY}`,
+      `/apps/${APP_ID}/${apiKey}`,
       { token: apiKey }
     );
     const firstUpdatedAt = first.data.meta.updatedAt;
 
-    await req("PUT", `/apps/${APP_ID}/${RECORD_KEY}`, {
+    await req("PUT", `/apps/${APP_ID}/${apiKey}`, {
       token: apiKey,
       body: { hello: "updated", count: 2 },
     });
 
     const { body: second } = await req(
       "GET",
-      `/apps/${APP_ID}/${RECORD_KEY}`,
+      `/apps/${APP_ID}/${apiKey}`,
       { token: apiKey }
     );
     assert.ok(second.data.meta.updatedAt);
@@ -266,7 +265,7 @@ describe("Records CRUD", function () {
   it("DELETE should remove the record", async function () {
     const { status, body } = await req(
       "DELETE",
-      `/apps/${APP_ID}/${RECORD_KEY}`,
+      `/apps/${APP_ID}/${apiKey}`,
       { token: apiKey }
     );
     assert.strictEqual(status, 200);
@@ -276,7 +275,7 @@ describe("Records CRUD", function () {
   it("GET should 404 after deletion", async function () {
     const { status } = await req(
       "GET",
-      `/apps/${APP_ID}/${RECORD_KEY}`,
+      `/apps/${APP_ID}/${apiKey}`,
       { token: apiKey }
     );
     assert.strictEqual(status, 404);
@@ -290,14 +289,13 @@ describe("Records CRUD", function () {
   });
 
   it("API key should be rejected after revocation", async function () {
-    // 先吊销
     await req("DELETE", `/admin/api-keys/${apiKey}`, { cookie: ADMIN_COOKIE });
     const keyToTest = apiKey;
     apiKey = null; // 防止 after hook 重复删除
 
     const { status } = await req(
       "GET",
-      `/apps/${APP_ID}/${RECORD_KEY}`,
+      `/apps/${APP_ID}/${keyToTest}`,
       { token: keyToTest }
     );
     assert.strictEqual(status, 401, "Revoked key should be rejected");
@@ -310,7 +308,6 @@ describe("@djchan/kv-sync", function () {
   this.timeout(30000);
 
   const APP_ID = "sdk-test-app";
-  const RECORD_KEY = "profile";
   let apiKey = null;
   let client = null;
 
@@ -335,19 +332,19 @@ describe("@djchan/kv-sync", function () {
   });
 
   it("get() should return null for a missing record", async function () {
-    const result = await client.get("missing-record");
+    const result = await client.get();
     assert.strictEqual(result, null);
   });
 
-  it("upload() and get() should round-trip JSON values", async function () {
-    const meta = await client.upload(RECORD_KEY, {
+  it("put() and get() should round-trip JSON values", async function () {
+    const meta = await client.put({
       name: "DJ",
       settings: { theme: "light" },
     });
     assert.ok(meta.size > 0);
     assert.ok(meta.updatedAt);
 
-    const result = await client.get(RECORD_KEY);
+    const result = await client.get();
     assert.ok(result);
     assert.deepStrictEqual(result.value, {
       name: "DJ",
@@ -357,10 +354,10 @@ describe("@djchan/kv-sync", function () {
     assert.strictEqual(result.meta.updatedAt, meta.updatedAt);
   });
 
-  it("mergeAndSync() should follow read-full -> local merge -> upload and call onSuccess", async function () {
+  it("mergeAndSync() should follow read-full -> local merge -> put and call onSuccess", async function () {
     let onSuccessPayload = null;
 
-    const result = await client.mergeAndSync(RECORD_KEY, {
+    const result = await client.mergeAndSync({
       merge(remote) {
         return {
           ...(remote || {}),
@@ -384,14 +381,14 @@ describe("@djchan/kv-sync", function () {
     assert.ok(result.meta.updatedAt);
     assert.deepStrictEqual(onSuccessPayload, result);
 
-    const fetched = await client.get(RECORD_KEY);
+    const fetched = await client.get();
     assert.ok(fetched);
     assert.deepStrictEqual(fetched.value, result.value);
   });
 
   it("delete() should remove the record", async function () {
-    await client.delete(RECORD_KEY);
-    const result = await client.get(RECORD_KEY);
+    await client.delete();
+    const result = await client.get();
     assert.strictEqual(result, null);
   });
 
@@ -403,7 +400,7 @@ describe("@djchan/kv-sync", function () {
     });
 
     await assert.rejects(
-      () => invalidClient.get(RECORD_KEY),
+      () => invalidClient.get(),
       (error) => {
         assert.ok(error instanceof KvSyncClientError);
         assert.strictEqual(error.status, 401);

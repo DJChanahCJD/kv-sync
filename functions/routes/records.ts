@@ -2,10 +2,10 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import type { Env } from "../types/hono";
-import type { RecordMeta, RecordEntry } from "@kv-sync/shared";
 import { KV } from "../types/index";
 import { apiKeyMiddleware } from "../middleware/apiKey";
 import { ok, fail } from "@utils/response";
+import { RecordMeta, RecordEntry } from "@shared/types";
 
 const records = new Hono<{ Bindings: Env }>();
 
@@ -13,11 +13,11 @@ const records = new Hono<{ Bindings: Env }>();
 records.use("*", apiKeyMiddleware);
 
 /**
- * PUT /apps/:appId/:API_KEY
+ * PUT /apps/:appId/:apiKey
  * 写入 JSON 快照（覆盖式 upsert），返回 metadata
  */
-records.put("/:appId/:API_KEY", async (c) => {
-  const { appId, API_KEY } = c.req.param();
+records.put("/:appId/:apiKey", async (c) => {
+  const { appId, apiKey } = c.req.param();
   const bodyText = await c.req.text();
 
   // 校验必须为合法 JSON
@@ -32,7 +32,7 @@ records.put("/:appId/:API_KEY", async (c) => {
     updatedAt: new Date().toISOString(),
   };
 
-  await c.env.KV_SYNC.put(KV.RECORD_KEY(appId, API_KEY), bodyText, {
+  await c.env.KV_SYNC.put(KV.RECORD_KEY(appId, apiKey), bodyText, {
     metadata: meta,
   });
 
@@ -40,13 +40,13 @@ records.put("/:appId/:API_KEY", async (c) => {
 });
 
 /**
- * GET /apps/:appId/:API_KEY
+ * GET /apps/:appId/:apiKey
  * 读取单条记录，返回 value + metadata
  */
-records.get("/:appId/:API_KEY", async (c) => {
-  const { appId, API_KEY } = c.req.param();
+records.get("/:appId/:apiKey", async (c) => {
+  const { appId, apiKey } = c.req.param();
   const { value, metadata } = await c.env.KV_SYNC.getWithMetadata<RecordMeta>(
-    KV.RECORD_KEY(appId, API_KEY)
+    KV.RECORD_KEY(appId, apiKey)
   );
 
   if (value === null) {
@@ -57,12 +57,12 @@ records.get("/:appId/:API_KEY", async (c) => {
 });
 
 /**
- * DELETE /apps/:appId/:API_KEY
+ * DELETE /apps/:appId/:apiKey
  * 删除记录
  */
-records.delete("/:appId/:API_KEY", async (c) => {
-  const { appId, API_KEY } = c.req.param();
-  await c.env.KV_SYNC.delete(KV.RECORD_KEY(appId, API_KEY));
+records.delete("/:appId/:apiKey", async (c) => {
+  const { appId, apiKey } = c.req.param();
+  await c.env.KV_SYNC.delete(KV.RECORD_KEY(appId, apiKey));
   return ok(c, null, "Deleted");
 });
 

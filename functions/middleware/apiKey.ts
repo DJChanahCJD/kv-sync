@@ -1,8 +1,8 @@
 import { createMiddleware } from "hono/factory";
 import type { Env } from "../types/hono";
-import type { ApiKeyMeta } from "@kv-sync/shared";
 import { KV } from "../types/index";
 import { fail } from "@utils/response";
+import { ApiKeyMeta } from "@shared/types";
 
 /**
  * 从 Authorization 头提取 Bearer token
@@ -16,9 +16,12 @@ function extractBearer(authHeader: string | undefined): string | null {
 /**
  * 数据面中间件：验证 API key
  * 从 Authorization: Bearer <key> 提取，到 KV 查询 api_key:{key} 的 metadata，
- * 校验 status === "active"。
+ * 校验 status === "on"。
  */
-export const apiKeyMiddleware = createMiddleware<{ Bindings: Env }>(
+export const apiKeyMiddleware = createMiddleware<{
+  Bindings: Env;
+  Variables: { apiKey: string };
+}>(
   async (c, next) => {
     const token = extractBearer(c.req.header("Authorization"));
     if (!token) {
@@ -30,10 +33,11 @@ export const apiKeyMiddleware = createMiddleware<{ Bindings: Env }>(
       KV.API_KEY(token)
     );
 
-    if (!metadata || metadata.status !== "active") {
+    if (!metadata || metadata.status !== "on") {
       return fail(c, "Invalid or revoked API key", 401);
     }
 
+    c.set("apiKey", token);
     await next();
   }
 );

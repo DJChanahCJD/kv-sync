@@ -18,13 +18,10 @@ export interface KvSyncClientOptions {
 }
 
 export interface KvSyncClient {
-  get<T>(recordKey: string): Promise<{ value: T; meta: RecordMeta } | null>;
-  upload<T>(recordKey: string, value: T): Promise<RecordMeta>;
-  delete(recordKey: string): Promise<void>;
-  mergeAndSync<T>(
-    recordKey: string,
-    options: MergeAndSyncOptions<T>
-  ): Promise<{ value: T; meta: RecordMeta }>;
+  get<T>(): Promise<{ value: T; meta: RecordMeta } | null>;
+  put<T>(value: T): Promise<RecordMeta>;
+  delete(): Promise<void>;
+  mergeAndSync<T>(options: MergeAndSyncOptions<T>): Promise<{ value: T; meta: RecordMeta }>;
 }
 
 export interface MergeAndSyncOptions<T> {
@@ -52,8 +49,8 @@ function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/, "");
 }
 
-function buildRecordUrl(baseUrl: string, appId: string, recordKey: string): string {
-  return `${trimTrailingSlash(baseUrl)}/apps/${encodeURIComponent(appId)}/${encodeURIComponent(recordKey)}`;
+function buildRecordUrl(baseUrl: string, appId: string, apiKey: string): string {
+  return `${trimTrailingSlash(baseUrl)}/apps/${encodeURIComponent(appId)}/${encodeURIComponent(apiKey)}`;
 }
 
 async function parseBody<T>(res: Response): Promise<{ rawText: string; body: ApiResponse<T> | null }> {
@@ -86,7 +83,7 @@ export function createKvSyncClient(options: KvSyncClientOptions): KvSyncClient {
     throw new TypeError("A fetch implementation is required");
   }
 
-  async function request<T>(recordKey: string, init?: RequestInit): Promise<T> {
+  async function request<T>(init?: RequestInit): Promise<T> {
     const headers = new Headers(options.headers);
     headers.set("Authorization", `Bearer ${options.apiKey}`);
 
@@ -95,7 +92,7 @@ export function createKvSyncClient(options: KvSyncClientOptions): KvSyncClient {
       extraHeaders.forEach((value, key) => headers.set(key, value));
     }
 
-    const res = await fetchImpl(buildRecordUrl(options.baseUrl, options.appId, recordKey), {
+    const res = await fetchImpl(buildRecordUrl(options.baseUrl, options.appId, options.apiKey), {
       ...init,
       headers,
     });
@@ -122,9 +119,9 @@ export function createKvSyncClient(options: KvSyncClientOptions): KvSyncClient {
   }
 
   return {
-    async get<T>(recordKey: string): Promise<RecordResponse<T> | null> {
+    async get<T>(): Promise<RecordResponse<T> | null> {
       try {
-        return await request<RecordResponse<T>>(recordKey, { method: "GET" });
+        return await request<RecordResponse<T>>({ method: "GET" });
       } catch (error) {
         if (error instanceof KvSyncClientError && error.status === 404) {
           return null;
@@ -133,8 +130,8 @@ export function createKvSyncClient(options: KvSyncClientOptions): KvSyncClient {
       }
     },
 
-    async upload<T>(recordKey: string, value: T): Promise<RecordMeta> {
-      return request<RecordMeta>(recordKey, {
+    async put<T>(value: T): Promise<RecordMeta> {
+      return request<RecordMeta>({
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -143,17 +140,14 @@ export function createKvSyncClient(options: KvSyncClientOptions): KvSyncClient {
       });
     },
 
-    async delete(recordKey: string): Promise<void> {
-      await request<null>(recordKey, { method: "DELETE" });
+    async delete(): Promise<void> {
+      await request<null>({ method: "DELETE" });
     },
 
-    async mergeAndSync<T>(
-      recordKey: string,
-      options: MergeAndSyncOptions<T>
-    ): Promise<{ value: T; meta: RecordMeta }> {
-      const remote = await this.get<T>(recordKey);
+    async mergeAndSync<T>(options: MergeAndSyncOptions<T>): Promise<{ value: T; meta: RecordMeta }> {
+      const remote = await this.get<T>();
       const nextValue = await options.merge(remote?.value ?? null);
-      const meta = await this.upload(recordKey, nextValue);
+      const meta = await this.put(nextValue);
       const result = { value: nextValue, meta };
       await options.onSuccess?.(result);
       return result;

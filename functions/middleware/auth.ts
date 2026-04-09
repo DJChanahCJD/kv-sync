@@ -31,7 +31,7 @@ export const authMiddleware = createMiddleware<{ Bindings: Env }>(async (c, next
     const secret = env.PASSWORD || 'secret';
     await verifyJWT(authCookie, secret);
     await next();
-  } catch (e) {
+  } catch (_error) {
     return fail(c, 'Unauthorized', 401);
   }
 });

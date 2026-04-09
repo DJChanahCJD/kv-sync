@@ -42,7 +42,7 @@ export function isValidUrl(urlString: string): boolean {
     }
 
     return true;
-  } catch (e) {
+  } catch (_error) {
     return false;
   }
 }
