@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { login } from "@/lib/api/auth";
+import { resetRedirectFlag } from "@/lib/api/client";
 
 
 
@@ -42,8 +43,11 @@ function LoginForm() {
       }
       // 登录成功，后端已写入 HttpOnly Cookie
       toast.success("登录成功");
+      resetRedirectFlag();
       const redirect = searchParams.get("redirect");
-      router.replace(redirect || "/admin");
+      // 只允许相对路径，防止开放重定向
+      const safeRedirect = redirect?.startsWith("/") ? redirect : "/admin";
+      router.replace(safeRedirect);
     } finally {
       setLoading(false);
     }

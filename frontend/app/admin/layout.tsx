@@ -6,6 +6,7 @@ import { KeyRound, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { logout } from "@/lib/api/auth";
+import { resetRedirectFlag } from "@/lib/api/client";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   async function handleLogout() {
     await logout();
     toast.success("已退出登录");
+    resetRedirectFlag();
     router.replace("/login");
   }
 
@@ -23,7 +25,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="max-w-5xl mx-auto flex h-14 items-center gap-3 px-4">
           <div className="flex items-center gap-2 font-semibold">
             <KeyRound className="w-4 h-4 text-primary" />
-            <span>KVSync</span>
+            <span>KV Sync</span>
           </div>
           <div className="flex-1" />
           <ThemeToggle />
