@@ -30,6 +30,14 @@ export const formatDateZN = (dateStr: string) => {
   }
 };
 
+export const formatTime = (dateStr: string) => {
+  try {
+    return format(new Date(dateStr), "yyyy-MM-dd HH:mm:ss");
+  } catch {
+    return dateStr;
+  }
+};
+
 /**
  * 异步重试工具
  * @param fn 异步函数

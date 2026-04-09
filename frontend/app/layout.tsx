@@ -4,7 +4,7 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 
-export const APP_NAME = "Vibe Template CF";
+export const APP_NAME = "KVSync";
 export const metadata: Metadata = {
   title: APP_NAME,
 };

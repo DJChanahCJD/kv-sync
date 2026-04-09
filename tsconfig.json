@@ -1,6 +1,7 @@
 {
   "files": [],
   "references": [
+    { "path": "./client" },
     { "path": "./frontend" },
     { "path": "./shared" },
     { "path": "./functions" }

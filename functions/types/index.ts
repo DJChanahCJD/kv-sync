@@ -1,10 +1,11 @@
-// types.ts
-
-// TODO: 修改为你自己的Cloudflare 配置
-export enum CF {
-  KV_NAME = 'oh_file_url',
-  R2_BUCKET = 'oh_file_r2',
-
-  // KV key
-  SETTINGS_KEY = 'oh_settings', //  通用设置
-}
+/** KVSync KV key 前缀常量 */
+export const KV = {
+  /** 记录 key 前缀：app:{appId}:record:{API_KEY} */
+  RECORD_PREFIX: (appId: string) => `app:${appId}:record:`,
+  /** 单条记录 key */
+  RECORD_KEY: (appId: string, API_KEY: string) => `app:${appId}:record:${API_KEY}`,
+  /** API key 前缀 */
+  API_KEY_PREFIX: "api_key:",
+  /** API key 存储 key */
+  API_KEY: (apiKey: string) => `api_key:${apiKey}`,
+} as const;

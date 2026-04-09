@@ -1,5 +1,5 @@
 // lib/utils/client-cache.ts（仅客户端使用）
-const CACHE_NAME = 'vibe-template-cf-cache-v1';
+const CACHE_NAME = 'kv-sync-cache-v1';
 const DEFAULT_TTL = 7 * 24 * 60 * 60 * 1000;
 const STORAGE_PRESSURE_RATIO = 0.8;
 

@@ -1,102 +1,255 @@
-# Vibe Template CF
+# KV Sync
 
-<p align="center">
-  <img width="100" alt="Vibe Template CF icon" src="frontend/app/icon.svg">
-</p>
-<p align="center"><strong>Vibe Template CF</strong></p>
+> A lightweight JSON snapshot sync service built on Cloudflare KV.
 
-<p align="center">
-  基于 Next.js 16、Tailwind CSS v4、Hono 和 Cloudflare Pages 的现代化全栈开发模板。
-</p>
+它只做一件事：保存和读取完整 JSON 快照。服务端负责鉴权、存储和返回 metadata，不做局部合并、不做历史版本、不承诺强一致。
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Next.js-16-black?logo=nextdotjs&logoColor=white" />
-  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" />
-  <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white" />
-  <img src="https://img.shields.io/badge/Tailwind_CSS-4.x-06B6D4?logo=tailwindcss&logoColor=white" />
-  <img src="https://img.shields.io/badge/Hono-4.x-000000?logo=hono&logoColor=white" />
-  <img src="https://img.shields.io/badge/State-Zustand-orange" />
-</p>
+## 适用场景
 
+适合：
 
-## ✨ 核心功能
-- **全栈架构**: Monorepo (Frontend + Functions + Shared)
-- **前端框架**: [Next.js 16](https://nextjs.org/) (App Router) + [React 19](https://react.dev/)
-- **后端运行时**: [Cloudflare Pages Functions](https://developers.cloudflare.com/pages/functions/) + [Hono](https://hono.dev/)
-- **样式方案**: [Tailwind CSS v4](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/)
-- **状态管理**: [Zustand](https://zustand-demo.pmnd.rs/)
-- **类型安全**: TypeScript + Shared Types
+- 配置同步
+- 草稿、偏好、轻量文档存储
+- 低频覆盖式状态同步
+- 内部工具的小规模数据持久化
 
-## 🚀 快速开始
+不适合：
 
-### 前置要求
+- 高频并发编辑
+- 强一致事务
+- 复杂查询
+- 多人实时协作
+- 服务端自动冲突合并
 
-- Node.js 18+
-- Cloudflare 账号（免费）
+## 同步模型
 
-### 本地开发
+推荐同步流程固定为：
 
-1. **安装依赖**
-   ```bash
-   # 在根目录运行，自动安装所有 Workspaces 依赖
-   npm install
-   ```
+`读全量 -> 本地 merge -> 写全量`
 
-2. **启动项目**
-   ```bash
-   npm run dev
-   ```
-> 第一次启动需要构建前端 `npm run build`，后续启动直接 `npm run dev` 即可。
+含义如下：
 
-3. **访问网站**
-   - 前端：`http://localhost:3000`
-   - 后端：`http://localhost:8080` (由 Wrangler 代理)
+1. 客户端先读取远端完整 JSON。
+2. 在本地按业务规则完成 merge。
+3. 将 merge 后的完整 JSON 整体写回。
 
-> [!TIP]
-> 开发环境下密码为`123456`（在访问 `/admin` 页面时需要）
-> 修改 functions 代码后，可运行 `npm run ci-test` 快速测试功能是否正常。
+KVSync 本身是快照存储，不提供局部 patch merge。服务端每次写入都会生成新的 metadata：
 
----
+- `updatedAt`
+- `size`
 
-## 📦 Cloudflare 部署
+如果需要冲突处理，应在客户端基于完整快照和本地状态完成，而不是依赖服务端做字段级合并。
 
-### 1. 创建 Pages 项目
+## SDK
 
-Fork 本项目，然后在 Cloudflare Dashboard 创建 Pages 项目：
+仓库内提供 browser-first 的数据面 SDK：`@djchan/kv-sync`。
 
-- **构建命令**: `npm run build`
-- **构建输出目录**: `frontend/out`
+推荐用法：
 
-### 2. 配置环境变量
+```ts
+import { createKvSyncClient } from "@djchan/kv-sync";
 
-在 Pages 项目的设置中添加以下环境变量：
+const kvSyncClient = createKvSyncClient({
+  baseUrl: "https://your-api.example.com",
+  appId: "my-app",
+  apiKey: "ksk_xxx",
+});
 
-```env
-PASSWORD=your_password          # 密码
+const current = await kvSyncClient.get<{ theme: string }>("settings");
+
+await kvSyncClient.sync("settings", (remote) => ({
+  ...(remote ?? {}),
+  theme: "dark",
+}));
 ```
 
-### 3. 重试部署
+如果在当前 Next.js 前端中使用，可通过 `frontend/lib/api/kv-sync.ts` 创建带默认 `baseUrl` 的装配层。
 
-回到部署页面重试部署，让环境变量生效。
+## API 概览
 
-## 📂 项目结构
+### 健康检查
 
-- `frontend/`: Next.js 前端应用
-  - `app/`: 页面与布局
-  - `components/`: UI 组件与业务组件
-  - `lib/`: 工具函数与 API 客户端
-  - `stores/`: 状态管理
-- `functions/`: Cloudflare Pages Functions 后端 (Hono)
-  - `routes/`: API 路由定义
-  - `middleware/`: 中间件 (Auth, CORS)
-  - `utils/`: 后端工具函数
-- `shared/`: 前后端共享代码 (Types, Utils)
+```http
+GET /healthz
+```
 
-## 🔍 参考资料
+### 数据面
 
-- [Cloudflare API](https://developers.cloudflare.com/api)
+数据面使用 `Authorization: Bearer <apiKey>` 鉴权。
 
-## 🤝 Contributing
+```http
+PUT    /apps/:appId/:recordKey
+GET    /apps/:appId/:recordKey
+DELETE /apps/:appId/:recordKey
+```
 
-欢迎提交 **Issue** 反馈问题或建议新功能，也欢迎 **Pull Request** 一起完善项目！
-觉得有用的话，点个 ⭐️ 支持一下吧！
+写入 body 必须是合法 JSON。`PUT` 为覆盖式 upsert，返回：
+
+```json
+{
+  "size": 123,
+  "updatedAt": "2026-04-08T00:00:00.000Z"
+}
+```
+
+读取返回：
+
+```json
+{
+  "value": { "hello": "world" },
+  "meta": {
+    "size": 123,
+    "updatedAt": "2026-04-08T00:00:00.000Z"
+  }
+}
+```
+
+### 管理面
+
+管理面先通过登录接口获取 `auth` cookie，再访问 `/admin/api-keys`。
+
+```http
+POST   /auth/login
+POST   /auth/logout
+
+POST   /admin/api-keys
+GET    /admin/api-keys?limit=50&cursor=...
+DELETE /admin/api-keys/:keyRef
+PATCH  /admin/api-keys/:keyRef/status
+```
+
+登录请求体：
+
+```json
+{
+  "password": "123456"
+}
+```
+
+创建 API key 请求体：
+
+```json
+{
+  "note": "desktop client",
+  "prefix": "desktop"
+}
+```
+
+其中：
+
+- `note` 可选，最大 200 字符
+- `prefix` 可选，仅允许字母、数字、下划线，长度 1 到 20
+
+`POST /admin/api-keys` 会返回完整 `api_key`，且仅创建时可见一次。
+
+## KV 数据模型
+
+记录存储 key：
+
+```text
+app:{appId}:record:{recordKey}
+```
+
+value：
+
+- 业务 JSON 的完整字符串
+
+metadata：
+
+```json
+{
+  "size": 123,
+  "updatedAt": "2026-04-08T00:00:00.000Z"
+}
+```
+
+API key 存储 key：
+
+```text
+api_key:{apiKey}
+```
+
+metadata：
+
+```json
+{
+  "api_key": "ksk_xxx",
+  "note": "desktop client",
+  "createdAt": "2026-04-08T00:00:00.000Z",
+  "status": "active"
+}
+```
+
+## 本地开发
+
+前置要求：
+
+- Node.js 18+
+
+安装依赖：
+
+```bash
+npm install
+```
+
+构建前端静态文件：
+
+```bash
+npm run build
+```
+
+启动本地环境：
+
+```bash
+npm run dev
+```
+
+或仅启动后端：
+
+```bash
+npm run dev:backend
+```
+
+默认本地地址：
+
+- 前端：`http://localhost:3000`
+- 后端：`http://localhost:8080`
+
+默认开发密码通过本地 Wrangler 绑定为：
+
+```env
+PASSWORD=123456
+```
+
+运行集成测试：
+
+```bash
+npm run ci-test
+```
+
+## 部署
+
+Cloudflare Pages 构建配置：
+
+- Build command: `npm run build`
+- Build output directory: `frontend/out`
+
+需要配置的环境变量：
+
+```env
+PASSWORD=your_password
+```
+
+后端依赖一个 KV namespace 绑定：
+
+```text
+KV_SYNC
+```
+
+## 设计说明
+
+- 服务端存储的是完整快照，不是字段级文档数据库
+- 覆盖写入采用简单 LWW 风格
+- API key 可创建多个，适合不同客户端或不同应用隔离
+- 客户端应把 merge 策略视为自身职责
+

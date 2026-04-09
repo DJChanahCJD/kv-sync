@@ -1,3 +1,8 @@
 node_modules
 data
 .wrangler
+client/dist
+client/*.tgz
+tmp
+.trae/
+.codebuddy/

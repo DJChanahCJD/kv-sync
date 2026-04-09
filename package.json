@@ -1,8 +1,9 @@
 {
-  "name": "vibe-template-cf",
+  "name": "kv-sync",
   "version": "0.1.0",
   "private": true,
   "workspaces": [
+    "client",
     "frontend",
     "shared",
     "functions"
@@ -10,9 +11,11 @@
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" ",
     "dev:frontend": "npm run dev --prefix frontend",
-    "dev:backend": "npx wrangler pages dev frontend/out --binding PASSWORD=123456 --ip 0.0.0.0 --port 8080",
+    "dev:backend": "npx wrangler pages dev frontend/out --kv KV_SYNC --binding PASSWORD=123456 --ip 0.0.0.0 --port 8080 --persist-to ./data",
+    "build:client": "npm run build --prefix client",
     "build": "npm run build --prefix frontend",
-    "ci-test": "concurrently -k -s first \"npm run dev:backend\" \"wait-on http://localhost:8080 && mocha --exit\""
+    "ci-test": "concurrently -k -s first \"npm run dev:backend\" \"wait-on http://localhost:8080 && mocha --exit\"",
+    "pack:client": "npm run pack:check --prefix client"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

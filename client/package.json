@@ -1,0 +1,34 @@
+{
+  "name": "@djchan/kv-sync",
+  "version": "0.1.0",
+  "description": "Browser-first KVSync client for full JSON snapshot sync.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node ../node_modules/typescript/bin/tsc -p tsconfig.build.json",
+    "prepublishOnly": "npm run build",
+    "pack:check": "npm run build && npm pack --dry-run --cache ../tmp/npm-cache",
+    "pack:smoke": "npm run build && npm pack --pack-destination ../tmp --cache ../tmp/npm-cache && node ./scripts/smoke-pack.mjs"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "kv-sync",
+    "cloudflare-kv",
+    "sync",
+    "json"
+  ],
+  "sideEffects": false
+}

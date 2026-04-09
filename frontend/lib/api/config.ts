@@ -1,11 +1,10 @@
 import { ApiResponse } from "@shared/types";
 
-export const API_URL =
-  typeof window !== "undefined"
-    ? window.location.hostname === "localhost" && process.env.NEXT_PUBLIC_BACKEND_URL
-      ? process.env.NEXT_PUBLIC_BACKEND_URL
-      : window.location.origin
-    : "";
+// 开发时：NEXT_PUBLIC_BACKEND_URL（在 .env.local 中配置，Next.js 构建时内联）
+// 生产时：同源，使用 window.location.origin
+export const API_URL: string =
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  (typeof window !== "undefined" ? window.location.origin : "");
 /**
  * 统一处理后端 ok / fail 响应
  * 支持传入 Response 对象或 Promise<Response>
