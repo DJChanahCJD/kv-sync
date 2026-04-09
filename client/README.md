@@ -1,6 +1,11 @@
 # `@djchan/kv-sync`
 
-Browser-first KVSync SDK for full JSON snapshot sync.
+面向前端的 JSON 快照同步 SDK。
+
+它只解决两件事：
+
+- `mergeAndSync`：传入合并逻辑和成功回调，SDK 自动完成 `get -> merge -> upload`
+- `upload`：直接用本地快照覆盖远端
 
 ## Install
 
@@ -18,21 +23,50 @@ const client = createKvSyncClient({
   appId: "my-app",
   apiKey: "ksk_xxx",
 });
+```
 
-const profile = await client.get<{ theme: string }>("profile");
+### `mergeAndSync`
 
-await client.sync("profile", (remote) => ({
-  ...(remote ?? {}),
+适合“先拉远端，再按本地业务规则合并，再整体写回”的场景。
+
+```ts
+await client.mergeAndSync("profile", {
+  merge(remote) {
+    return {
+      ...(remote ?? {}),
+      theme: "dark",
+      lastUsedAt: new Date().toISOString(),
+    };
+  },
+  onSuccess(result) {
+    console.log("synced at", result.meta.updatedAt);
+  },
+});
+```
+
+### `upload`
+
+适合“当前本地快照就是最终结果，直接覆盖远端”的场景。
+
+```ts
+await client.upload("profile", {
   theme: "dark",
-}));
+  shortcuts: ["cmd+k"],
+});
 ```
 
 ## API
 
-- `client.get<T>(recordKey)` returns `{ value, meta }` or `null` on `404`
-- `client.put(recordKey, value)` writes the full JSON snapshot and returns `RecordMeta`
-- `client.delete(recordKey)` deletes a record
-- `client.sync(recordKey, merge)` runs `read full -> local merge -> write full`
+- `client.mergeAndSync(recordKey, { merge, onSuccess? })` 返回 `{ value, meta }`
+- `client.upload(recordKey, value)` 返回 `RecordMeta`
+- `client.get<T>(recordKey)` 返回 `{ value, meta }`，不存在时返回 `null`
+- `client.delete(recordKey)` 删除一条记录
+
+## Boundary
+
+- 这是全量 JSON 快照同步，不是字段级 patch
+- 不负责服务端冲突合并
+- 适合配置、草稿、偏好这类低频覆盖式同步
 
 ## Runtime
 

@@ -19,12 +19,17 @@ export interface KvSyncClientOptions {
 
 export interface KvSyncClient {
   get<T>(recordKey: string): Promise<{ value: T; meta: RecordMeta } | null>;
-  put<T>(recordKey: string, value: T): Promise<RecordMeta>;
+  upload<T>(recordKey: string, value: T): Promise<RecordMeta>;
   delete(recordKey: string): Promise<void>;
-  sync<T>(
+  mergeAndSync<T>(
     recordKey: string,
-    merge: (remote: T | null) => T | Promise<T>
+    options: MergeAndSyncOptions<T>
   ): Promise<{ value: T; meta: RecordMeta }>;
+}
+
+export interface MergeAndSyncOptions<T> {
+  merge: (remote: T | null) => T | Promise<T>;
+  onSuccess?: (result: { value: T; meta: RecordMeta }) => void | Promise<void>;
 }
 
 export class KvSyncClientError extends Error {
@@ -128,7 +133,7 @@ export function createKvSyncClient(options: KvSyncClientOptions): KvSyncClient {
       }
     },
 
-    async put<T>(recordKey: string, value: T): Promise<RecordMeta> {
+    async upload<T>(recordKey: string, value: T): Promise<RecordMeta> {
       return request<RecordMeta>(recordKey, {
         method: "PUT",
         headers: {
@@ -142,14 +147,16 @@ export function createKvSyncClient(options: KvSyncClientOptions): KvSyncClient {
       await request<null>(recordKey, { method: "DELETE" });
     },
 
-    async sync<T>(
+    async mergeAndSync<T>(
       recordKey: string,
-      merge: (remote: T | null) => T | Promise<T>
+      options: MergeAndSyncOptions<T>
     ): Promise<{ value: T; meta: RecordMeta }> {
       const remote = await this.get<T>(recordKey);
-      const nextValue = await merge(remote?.value ?? null);
-      const meta = await this.put(recordKey, nextValue);
-      return { value: nextValue, meta };
+      const nextValue = await options.merge(remote?.value ?? null);
+      const meta = await this.upload(recordKey, nextValue);
+      const result = { value: nextValue, meta };
+      await options.onSuccess?.(result);
+      return result;
     },
   };
 }

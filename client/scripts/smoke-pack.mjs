@@ -69,6 +69,8 @@ async function main() {
       'import { createKvSyncClient, KvSyncClientError } from "@djchan/kv-sync";',
       'const client = createKvSyncClient({ baseUrl: "https://example.com", appId: "demo", apiKey: "ksk_demo", fetch: globalThis.fetch });',
       'if (typeof client.get !== "function") throw new Error("get missing");',
+      'if (typeof client.upload !== "function") throw new Error("upload missing");',
+      'if (typeof client.mergeAndSync !== "function") throw new Error("mergeAndSync missing");',
       'if (!(new KvSyncClientError("x", { status: 400 }) instanceof Error)) throw new Error("error class broken");',
       'console.log("smoke ok");',
     ].join("\n")

@@ -339,8 +339,8 @@ describe("@djchan/kv-sync", function () {
     assert.strictEqual(result, null);
   });
 
-  it("put() and get() should round-trip JSON values", async function () {
-    const meta = await client.put(RECORD_KEY, {
+  it("upload() and get() should round-trip JSON values", async function () {
+    const meta = await client.upload(RECORD_KEY, {
       name: "DJ",
       settings: { theme: "light" },
     });
@@ -357,15 +357,24 @@ describe("@djchan/kv-sync", function () {
     assert.strictEqual(result.meta.updatedAt, meta.updatedAt);
   });
 
-  it("sync() should follow read-full -> local merge -> write-full", async function () {
-    const result = await client.sync(RECORD_KEY, (remote) => ({
-      ...(remote || {}),
-      settings: {
-        ...(remote?.settings || {}),
-        theme: "dark",
+  it("mergeAndSync() should follow read-full -> local merge -> upload and call onSuccess", async function () {
+    let onSuccessPayload = null;
+
+    const result = await client.mergeAndSync(RECORD_KEY, {
+      merge(remote) {
+        return {
+          ...(remote || {}),
+          settings: {
+            ...(remote?.settings || {}),
+            theme: "dark",
+          },
+          lastUsedAt: "2026-04-08T00:00:00.000Z",
+        };
       },
-      lastUsedAt: "2026-04-08T00:00:00.000Z",
-    }));
+      onSuccess(payload) {
+        onSuccessPayload = payload;
+      },
+    });
 
     assert.deepStrictEqual(result.value, {
       name: "DJ",
@@ -373,6 +382,7 @@ describe("@djchan/kv-sync", function () {
       lastUsedAt: "2026-04-08T00:00:00.000Z",
     });
     assert.ok(result.meta.updatedAt);
+    assert.deepStrictEqual(onSuccessPayload, result);
 
     const fetched = await client.get(RECORD_KEY);
     assert.ok(fetched);
