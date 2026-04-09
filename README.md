@@ -153,3 +153,7 @@ KV_SYNC
 - 写入策略是覆盖式 upsert
 - 冲突处理由客户端负责
 - API key 可按应用或客户端隔离
+
+## TODO
+
+- 更新 `@djchan/kv-sync` 包，提供最新文档

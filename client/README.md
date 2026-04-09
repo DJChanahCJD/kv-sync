@@ -11,8 +11,6 @@
 - `mergeAndSync`：传入合并逻辑和成功回调，SDK 自动完成 `get -> merge -> put`
 - `put`：直接用本地快照覆盖远端
 
-`createKvSyncClient()` 初始化后已经绑定 `appId + apiKey`，一个 client 实例只操作当前这条记录，不需要再重复传 `recordKey`。
-
 ## Install
 
 ```bash
