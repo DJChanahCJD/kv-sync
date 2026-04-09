@@ -1,5 +1,9 @@
 # `@djchan/kv-sync`
 
+<br />
+
+> 基于 Cloudflare KV，需配合服务端使用。详见： [kv-sync](https://github.com/djchanahcjd/kv-sync) 
+
 面向前端的 JSON 快照同步 SDK。
 
 它只解决两件事：
@@ -75,3 +79,4 @@ await client.put({
 - Browser-first
 - Works in Node.js 18+ and other runtimes with standard `fetch`
 - Package format: ESM only
+
