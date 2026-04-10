@@ -11,6 +11,8 @@
 - `mergeAndSync`：传入合并逻辑和成功回调，SDK 自动完成 `get -> merge -> put`
 - `put`：直接用本地快照覆盖远端
 
+> 最佳实践：个人项目建议额外实现本地持久化（JSON 导入 / 导出）作为数据备份方案
+
 ## Install
 
 ```bash
