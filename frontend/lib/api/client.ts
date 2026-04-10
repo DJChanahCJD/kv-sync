@@ -1,31 +1,51 @@
-import { API_URL } from './config'
+import { hc } from "hono/client";
+import { API_URL } from "./config";
+import type { AppType } from "@functions/app";
 
-let isRedirecting = false
+const REDIRECT_FLAG_KEY = "kv-sync-auth-redirecting";
 
-export const apiFetch = async (path: string, init?: RequestInit) => {
+function getSafeRedirectTarget() {
+  if (typeof window === "undefined") {
+    return "/admin";
+  }
+
+  const currentPath = `${window.location.pathname}${window.location.search}`;
+  const redirect = currentPath.startsWith("/admin") ? "" : `?redirect=${encodeURIComponent(currentPath)}`;
+  return `/admin${redirect}`;
+}
+
+function redirectToAdmin() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (window.location.pathname === "/admin" || sessionStorage.getItem(REDIRECT_FLAG_KEY) === "1") {
+    return;
+  }
+
+  sessionStorage.setItem(REDIRECT_FLAG_KEY, "1");
+  window.location.replace(getSafeRedirectTarget());
+}
+
+const customFetch: typeof fetch = async (input, init) => {
   const requestInit: RequestInit = {
     ...init,
     credentials: init?.credentials || "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers as Record<string, string>),
-    },
   };
 
-  const res = await fetch(`${API_URL}${path}`, requestInit)
+  const res = await fetch(input, requestInit);
 
-  if (res.status === 401 && !isRedirecting) {
-    if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
-      isRedirecting = true
-      const currentUrl = window.location.href;
-      const redirectUrl = `/login?redirect=${encodeURIComponent(currentUrl)}`;
-      window.location.href = redirectUrl;
-    }
+  if (res.status === 401) {
+    redirectToAdmin();
   }
 
-  return res
+  return res;
+};
+
+export function resetRedirectFlag() {
+  if (typeof window !== "undefined") {
+    sessionStorage.removeItem(REDIRECT_FLAG_KEY);
+  }
 }
 
-export const resetRedirectFlag = () => {
-  isRedirecting = false
-}
+export const client = hc<AppType>(API_URL, { fetch: customFetch }) as any;

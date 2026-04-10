@@ -15,7 +15,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     await logout();
     toast.success("已退出登录");
     resetRedirectFlag();
-    router.replace("/login");
+    router.replace("/admin");
   }
 
   return (

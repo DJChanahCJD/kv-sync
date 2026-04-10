@@ -21,6 +21,9 @@
     "paths": {
       "@/*": ["./*"],
       "@djchan/kv-sync": ["../client/src/index.ts"],
+      "@functions/*": ["../functions/*"],
+      "@utils/*": ["../functions/utils/*"],
+      "middleware/*": ["../functions/middleware/*"],
       "@shared/*": ["../shared/src/*"]
     }
   },
