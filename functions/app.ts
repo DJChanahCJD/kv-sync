@@ -6,7 +6,7 @@ import { proxyRoutes } from "./routes/proxy";
 import { recordsRoutes } from "./routes/records";
 import { adminRoutes } from "./routes/admin";
 
-export const app = new Hono<{ Bindings: Env }>().basePath("");
+export const app = new Hono<{ Bindings: Env }>().basePath("/api");
 
 // Global Middleware
 app.use("*", corsMiddleware);

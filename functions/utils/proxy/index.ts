@@ -44,7 +44,7 @@ export function handleStreamResponse(response: Response): Response {
  * 获取通用代理 URL
  */
 export function getProxyUrl(origin: string, targetUrl: string) {
-  return `${origin}/proxy?url=${encodeURIComponent(targetUrl)}`;
+  return `${origin}/api/proxy?url=${encodeURIComponent(targetUrl)}`;
 }
 
 /**

@@ -28,7 +28,7 @@ const listQuerySchema = z.object({
 });
 
 /**
- * POST /admin/api-keys
+ * POST /api/admin/api-keys
  * 创建新 API key，返回生成的 key（仅此一次可见）
  */
 admin.post("/api-keys", zValidator("json", createKeySchema), async (c) => {
@@ -49,7 +49,7 @@ admin.post("/api-keys", zValidator("json", createKeySchema), async (c) => {
 });
 
 /**
- * GET /admin/api-keys?limit=50&cursor=...
+ * GET /api/admin/api-keys?limit=50&cursor=...
  * 分页列出所有 API key（从 KV metadata 读取，避免 N+1）
  */
 admin.get("/api-keys", zValidator("query", listQuerySchema), async (c) => {
@@ -75,7 +75,7 @@ admin.get("/api-keys", zValidator("query", listQuerySchema), async (c) => {
 });
 
 /**
- * DELETE /admin/api-keys/:keyRef
+ * DELETE /api/admin/api-keys/:keyRef
  * 撤销（删除）指定 API key
  */
 admin.delete("/api-keys/:keyRef", async (c) => {
@@ -93,7 +93,7 @@ admin.delete("/api-keys/:keyRef", async (c) => {
 });
 
 /**
- * PATCH /admin/api-keys/:keyRef/status
+ * PATCH /api/admin/api-keys/:keyRef/status
  * 切换 API key 状态（active ↔ revoked）
  */
 admin.patch(

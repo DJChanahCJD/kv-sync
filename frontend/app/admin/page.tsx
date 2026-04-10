@@ -385,7 +385,7 @@ export default function AdminPage() {
           <div className="overflow-x-auto rounded-lg bg-zinc-950 p-4 font-mono text-sm leading-relaxed text-zinc-50 shadow-inner dark:bg-zinc-900">
             <span className="text-zinc-500"># 写入一条 JSON 记录</span>
             <br />
-            <span className="text-pink-400">curl</span> -X PUT <span className="text-blue-300">{"{API_URL}"}</span>/apps/<span className="text-blue-300">{"{appId}"}</span>/records/<span className="text-blue-300">{"{key}"}</span> \
+            <span className="text-pink-400">curl</span> -X PUT <span className="text-blue-300">{"{API_URL}"}</span>/api/apps/<span className="text-blue-300">{"{appId}"}</span>/records/<span className="text-blue-300">{"{key}"}</span> \
             <br />
             {"  "}-H <span className="text-green-300">&quot;Authorization: Bearer {"{YOUR_API_KEY}"}&quot;</span> \
             <br />

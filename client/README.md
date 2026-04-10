@@ -23,11 +23,13 @@ npm install @djchan/kv-sync
 import { createKvSyncClient } from "@djchan/kv-sync";
 
 const client = createKvSyncClient({
-  baseUrl: "https://your-api.example.com",
+  baseUrl: "https://your-site.example.com",
   appId: "my-app",
   apiKey: "ksk_xxx",
 });
 ```
+
+`baseUrl` 传站点根地址即可，SDK 会自动请求 `/api/apps/...`。
 
 ### `mergeAndSync`
 
@@ -77,4 +79,3 @@ await client.put({
 - Browser-first
 - Works in Node.js 18+ and other runtimes with standard `fetch`
 - Package format: ESM only
-

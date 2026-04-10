@@ -13,7 +13,7 @@ const records = new Hono<{ Bindings: Env }>();
 records.use("*", apiKeyMiddleware);
 
 /**
- * PUT /apps/:appId/:apiKey
+ * PUT /api/apps/:appId/:apiKey
  * 写入 JSON 快照（覆盖式 upsert），返回 metadata
  */
 records.put("/:appId/:apiKey", async (c) => {
@@ -40,7 +40,7 @@ records.put("/:appId/:apiKey", async (c) => {
 });
 
 /**
- * GET /apps/:appId/:apiKey
+ * GET /api/apps/:appId/:apiKey
  * 读取单条记录，返回 value + metadata
  */
 records.get("/:appId/:apiKey", async (c) => {
@@ -57,7 +57,7 @@ records.get("/:appId/:apiKey", async (c) => {
 });
 
 /**
- * DELETE /apps/:appId/:apiKey
+ * DELETE /api/apps/:appId/:apiKey
  * 删除记录
  */
 records.delete("/:appId/:apiKey", async (c) => {
@@ -72,7 +72,7 @@ const listQuerySchema = z.object({
 });
 
 /**
- * GET /apps/:appId/records?limit=50&cursor=...
+ * GET /api/apps/:appId/records?limit=50&cursor=...
  * 分页列出 appId 下所有 records（仅返回 metadata，不返回 value）
  */
 records.get(

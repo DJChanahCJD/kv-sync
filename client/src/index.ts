@@ -50,7 +50,7 @@ function trimTrailingSlash(value: string): string {
 }
 
 function buildRecordUrl(baseUrl: string, appId: string, apiKey: string): string {
-  return `${trimTrailingSlash(baseUrl)}/apps/${encodeURIComponent(appId)}/${encodeURIComponent(apiKey)}`;
+  return `${trimTrailingSlash(baseUrl)}/api/apps/${encodeURIComponent(appId)}/${encodeURIComponent(apiKey)}`;
 }
 
 async function parseBody<T>(res: Response): Promise<{ rawText: string; body: ApiResponse<T> | null }> {

@@ -98,34 +98,34 @@ npm run ci-test
 健康检查：
 
 ```http
-GET /healthz
+GET /api/healthz
 ```
 
 数据面，使用 `Authorization: Bearer <apiKey>`：
 
 ```http
-PUT    /apps/:appId/:apiKey
-GET    /apps/:appId/:apiKey
-DELETE /apps/:appId/:apiKey
-GET    /apps/:appId/records?limit=50&cursor=...
+PUT    /api/apps/:appId/:apiKey
+GET    /api/apps/:appId/:apiKey
+DELETE /api/apps/:appId/:apiKey
+GET    /api/apps/:appId/records?limit=50&cursor=...
 ```
 
 管理面：
 
 ```http
-POST   /auth/login
-POST   /auth/logout
+POST   /api/auth/login
+POST   /api/auth/logout
 
-POST   /admin/api-keys
-GET    /admin/api-keys?limit=50&cursor=...
-DELETE /admin/api-keys/:keyRef
-PATCH  /admin/api-keys/:keyRef/status
+POST   /api/admin/api-keys
+GET    /api/admin/api-keys?limit=50&cursor=...
+DELETE /api/admin/api-keys/:keyRef
+PATCH  /api/admin/api-keys/:keyRef/status
 ```
 
 可选代理能力：
 
 ```http
-GET /proxy?url=...
+GET /api/proxy?url=...
 ```
 
 ## 部署
