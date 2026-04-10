@@ -50,6 +50,8 @@
 - `shared/`：前后端共享类型
 
 > [SDK 文档](client/README.md)
+> 
+> [NPM 包](https://www.npmjs.com/package/@djchan/kv-sync)
 
 ## 快速开始
 
@@ -153,7 +155,3 @@ KV_SYNC
 - 写入策略是覆盖式 upsert
 - 冲突处理由客户端负责
 - API key 可按应用或客户端隔离
-
-## TODO
-
-- 更新 `@djchan/kv-sync` 包，提供最新文档
